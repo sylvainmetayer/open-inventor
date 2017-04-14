@@ -1,10 +1,8 @@
 #include <Inventor/SoMacApp.h>
-
 #include <Inventor/SoDB.h>         
 #include <Inventor/Xt/SoXt.h>         
 #include <Inventor/Xt/viewers/SoXtExaminerViewer.h>  
 #include <Inventor/nodes/SoSeparator.h>
-
 #include <Inventor/nodes/SoCone.h>
 #include <Inventor\nodes\SoCylinder.h>
 #include <Inventor\nodes/SoTranslation.h>
@@ -18,14 +16,18 @@
 #include <Inventor\SoPath.h>
 #include <Inventor\SoPickedPoint.h>
 #include <Inventor\SbVec.h>
+#include <Inventor\nodes/SoSelection.h>
+#include <Inventor\actions/SoBoxHighlightRenderAction.h>
+
+SoText3 *texte;
+char tmpStr[256];
 
 void mySelectionCB(void *, SoPath *selectionPath)
 {
-	char tmpStr[256];
 	float x = 3, z = 5;
 	sprintf(tmpStr, "%f, %f", x, z);
+	texte->string.setValue(tmpStr);
 }
-
 
 SoPath *pickFilterCB(void *, const SoPickedPoint *pick)
 {
@@ -42,8 +44,7 @@ SoPath *pickFilterCB(void *, const SoPickedPoint *pick)
 	return p->copy(i, 2);
 }
 
-int
-main(int, char **argv)
+int main(int, char **argv)
 {
   // Initialize Inventor and Xt
   Widget myWindow = SoXt::init(argv[0]);
@@ -73,21 +74,23 @@ main(int, char **argv)
   SoTexture2 *texture2 = new SoTexture2();
   SoMaterial *material = new SoMaterial();
   
-  SoSeparator *root = new SoSeparator();
-  SoSeparator *separator1, *separator2, *separator3;
+  SoSelection *root = new SoSelection();
+  SoSeparator *separatorPointe, *separatorCrayon, *separatorMine;
 
   translation->translation.setValue(0,7.5,0);
   rotationXYZ->angle = M_PI/2;
   rotationXYZ->angle = SoRotationXYZ::X;
   translation2->translation.setValue(0, 6.5, 0);
   
-  separator1 = new SoSeparator();
-  separator2 = new SoSeparator();
-  separator3 = new SoSeparator();
+  separatorPointe = new SoSeparator();
+  separatorCrayon = new SoSeparator();
+  separatorMine = new SoSeparator();
 
   root->ref();
+  root->addSelectionCallback(mySelectionCB);
+  root->setPickFilterCallback(pickFilterCB);
 
-  SoTranslation *crayonTranslation = new SoTranslation();
+  SoTranslation *translationRoot = new SoTranslation();
   SoCalculator *calXZ = new SoCalculator();
   SoTimeCounter *timeCounter = new SoTimeCounter();
   timeCounter->max = 360;
@@ -100,32 +103,44 @@ main(int, char **argv)
   calXZ->expression.set1Value(3, "te=tb*sin(ta)"); // z
   calXZ->expression.set1Value(4, "oA=vec3f(td,0,te)");
 
-  crayonTranslation->translation.connectFrom(&calXZ->oA);
+  translationRoot->translation.connectFrom(&calXZ->oA);
 
   texture->filename.setValue("C:/Open Inventor/9.4.1 C++ Visual2013 x64/src/FXViz/data/metal.bmp");
   
-  separator2->addChild(texture);
-  separator2->addChild(crayon);
+  separatorCrayon->addChild(texture);
+  separatorCrayon->addChild(crayon);
   
-  separator1->addChild(translation2);
-  separator1->addChild(rotationXYZ);
+  separatorPointe->addChild(translation2);
+  separatorPointe->addChild(rotationXYZ);
   texture2->filename.setValue("C:/Open Inventor/9.4.1 C++ Visual2013 x64/src/FXViz/data/oak.gif");
-  separator1->addChild(texture2);
-  separator1->addChild(pointe);
-  separator1->addChild(material);
+  separatorPointe->addChild(texture2);
+  separatorPointe->addChild(pointe);
+  separatorPointe->addChild(material);
 
-  root->addChild(crayonTranslation);
-  root->addChild(separator2);
-  root->addChild(separator3);
-  root->addChild(separator1);
+  separatorMine->addChild(translation);
+  separatorMine->addChild(mine);
 
-  separator3->addChild(translation);
-  separator3->addChild(mine);
+  SoRotationXYZ *rotationRoot = new SoRotationXYZ();
+  rotationRoot->angle = M_PI / 2;
+  rotationRoot->angle = SoRotationXYZ::X;
+
+  root->addChild(translationRoot);
+  root->addChild(rotationRoot);
+  root->addChild(separatorCrayon);
+  root->addChild(separatorMine);
+  root->addChild(separatorPointe);
+
+  // Texte
+  texte = new SoText3();
+  texte->string.setValue("Du texte");
+  root->addChild(texte);
 
   // Attach the viewer to the scene graph
   myViewer->setSceneGraph(root);
   
   // Show the main window
+  myViewer->setGLRenderAction(new SoBoxHighlightRenderAction());
+  myViewer->redrawOnSelectionChange(root);
   myViewer->show();
   SoXt::show(myWindow);
   
