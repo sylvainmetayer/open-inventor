@@ -19,6 +19,8 @@
 #include <Inventor\nodes/SoSelection.h>
 #include <Inventor\actions/SoBoxHighlightRenderAction.h>
 #include <Inventor\sensors\SoFieldSensor.h>
+#include <Inventor\nodes\SoCoordinate3.h>
+#include <Inventor\nodes\SoLineSet.h>
 
 SoText3 *texte;
 char tmpStr[256];
@@ -27,11 +29,9 @@ SoTranslation *translationRoot;
 void mySelectionCB(void *data, SoSensor *sensor)
 {
 	SoDataSensor *mySensor = (SoDataSensor *)sensor;
-	
 	sprintf(tmpStr, "%f, %f", translationRoot->translation.getValue()[0], translationRoot->translation.getValue()[2]);
 	texte->string.setValue(tmpStr);
 }
-
 
 int main(int, char **argv)
 {
@@ -120,6 +120,9 @@ int main(int, char **argv)
   SoFieldSensor *mySensor = new SoFieldSensor();
   mySensor->setFunction(mySelectionCB);
   mySensor->attach(&(translationRoot->translation));
+
+  SoCoordinate3 *coordonnees = new SoCoordinate3();
+  SoLineSet *lineSet = new SoLineSet();
 
   // Texte
   texte = new SoText3();
