@@ -18,31 +18,20 @@
 #include <Inventor\SbVec.h>
 #include <Inventor\nodes/SoSelection.h>
 #include <Inventor\actions/SoBoxHighlightRenderAction.h>
+#include <Inventor\sensors\SoFieldSensor.h>
 
 SoText3 *texte;
 char tmpStr[256];
+SoTranslation *translationRoot;
 
-void mySelectionCB(void *, SoPath *selectionPath)
+void mySelectionCB(void *data, SoSensor *sensor)
 {
-	float x = 3, z = 5;
-	sprintf(tmpStr, "%f, %f", x, z);
+	SoDataSensor *mySensor = (SoDataSensor *)sensor;
+	
+	sprintf(tmpStr, "%f, %f", translationRoot->translation.getValue()[0], translationRoot->translation.getValue()[2]);
 	texte->string.setValue(tmpStr);
 }
 
-SoPath *pickFilterCB(void *, const SoPickedPoint *pick)
-{
-	// See which child got picked
-	SoPath *p = pick->getPath();
-	SbVec3f v = pick->getPoint();
-	int i;
-	for (i = 0; i < p->getLength() - 1; i++)
-	{
-		SoNode *n = p->getNode(i);
-		if (n->isOfType(SoSelection::getClassTypeId()))
-			break;
-	}
-	return p->copy(i, 2);
-}
 
 int main(int, char **argv)
 {
@@ -74,7 +63,7 @@ int main(int, char **argv)
   SoTexture2 *texture2 = new SoTexture2();
   SoMaterial *material = new SoMaterial();
   
-  SoSelection *root = new SoSelection();
+  SoSeparator *root = new SoSeparator();
   SoSeparator *separatorPointe, *separatorCrayon, *separatorMine;
 
   translation->translation.setValue(0,7.5,0);
@@ -87,10 +76,8 @@ int main(int, char **argv)
   separatorMine = new SoSeparator();
 
   root->ref();
-  root->addSelectionCallback(mySelectionCB);
-  root->setPickFilterCallback(pickFilterCB);
 
-  SoTranslation *translationRoot = new SoTranslation();
+  translationRoot = new SoTranslation();
   SoCalculator *calXZ = new SoCalculator();
   SoTimeCounter *timeCounter = new SoTimeCounter();
   timeCounter->max = 360;
@@ -130,6 +117,10 @@ int main(int, char **argv)
   root->addChild(separatorMine);
   root->addChild(separatorPointe);
 
+  SoFieldSensor *mySensor = new SoFieldSensor();
+  mySensor->setFunction(mySelectionCB);
+  mySensor->attach(&(translationRoot->translation));
+
   // Texte
   texte = new SoText3();
   texte->string.setValue("Du texte");
@@ -139,8 +130,6 @@ int main(int, char **argv)
   myViewer->setSceneGraph(root);
   
   // Show the main window
-  myViewer->setGLRenderAction(new SoBoxHighlightRenderAction());
-  myViewer->redrawOnSelectionChange(root);
   myViewer->show();
   SoXt::show(myWindow);
   
